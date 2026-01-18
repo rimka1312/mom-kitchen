@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>كوزينتي</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="screen-welcome" class="screen active">
+        <h1>👩‍🍳 كوزينتي</h1>
+        <p>مرحباً يا أمي، واش راكي حابة توجدي؟</p>
+        <div class="mode-selection">
+            <button class="btn-big-icon" onclick="setMode('daily')">🍽️<br>وجبة ليوم واحد</button>
+            <button class="btn-big-icon" onclick="setMode('weekly')">📅<br>جدول أسبوع كامل</button>
+        </div>
+        <div class="secondary-actions">
+            <button class="btn-secondary" onclick="showAllRecipes()">📚 عرض كل الأكلات</button>
+            <button class="btn-secondary" onclick="showAddRecipeScreen()">➕ إضافة أكلة جديدة</button>
+            <button class="btn-secondary" onclick="showSavedMenus()">📂 جداولي المحفوظة</button>
+        </div>
+    </div>
+
+    <div id="screen-ingredients" class="screen">
+        <h2>واش عندك مقادير؟</h2>
+        <div class="ingredients-grid" id="ingredientsList"></div>
+        <div class="sticky-footer"><button class="btn-primary" onclick="generatePlan()">✨ اقترحي عليا ✨</button></div>
+        <br><br><br><button class="btn-text" onclick="goBack('screen-welcome')">رجوع</button>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <h2 id="resultTitle">النتيجة:</h2>
+        <div id="resultsContainer"></div> 
+        
+        <div class="actions">
+            <button class="btn-success" onclick="saveCurrentPlan()">👍 حفظ</button>
+            <button id="btn-pdf" class="btn-secondary" style="background:#3498db;" onclick="printCurrentPlan()">🖨️ PDF</button>
+        </div>
+        
+        <button id="btn-share" class="btn-secondary" style="background:#25D366; color:white; margin-top:5px;" onclick="shareCurrentPlan()">📲 مشاركة (واتساب)</button>
+        
+        <button id="btn-shopping" class="btn-secondary" style="background:#9b59b6; color:white; display:none; margin-top:5px;" onclick="generateShoppingList()">🛒 واش نشري (قائمة القضيان)</button>
+
+        <button class="btn-danger" style="margin-top:10px" onclick="generatePlan()">🔄 خلطة جديدة</button>
+        <button class="btn-text" onclick="goBack('screen-ingredients')">تغيير المقادير</button>
+    </div>
+
+    <div id="screen-catalog" class="screen">
+        <h2>كل الأكلات المتوفرة</h2>
+        <input type="text" id="searchBox" placeholder="ابحثي عن أكلة..." onkeyup="filterRecipes()">
+        <div id="catalogContainer"></div>
+        <button class="btn-text" onclick="goBack('screen-welcome')">رجوع للقائمة</button>
+    </div>
+
+    <div id="screen-add" class="screen">
+        <h2>إضافة أكلة جديدة</h2>
+        <form onsubmit="event.preventDefault(); addNewRecipe();">
+            <input type="text" id="newRecipeName" class="input-field" placeholder="اسم الأكلة" required>
+            <label>نوع الأكلة:</label>
+            <select id="newRecipeType" class="input-field">
+                <option value="مرقة">مرقة</option>
+                <option value="عجائن">عجائن</option>
+                <option value="غراتان">غراتان</option>
+                <option value="خفيف">خفيف/صيفي</option>
+            </select>
+            <label>المقادير:</label>
+            <div id="newRecipeIngredients" class="ingredients-grid small-grid"></div>
+            <textarea id="newRecipeInstructions" class="input-field" placeholder="طريقة التحضير..." rows="4"></textarea>
+            <button type="submit" class="btn-primary">حفظ الأكلة</button>
+        </form>
+        <button class="btn-text" onclick="goBack('screen-welcome')">إلغاء</button>
+    </div>
+
+    <div id="screen-saved" class="screen">
+        <h2>جداولي المحفوظة</h2>
+        <ul id="savedList" class="saved-list"></ul>
+        <button class="btn-text" onclick="goBack('screen-welcome')">رجوع للقائمة</button>
+    </div>
+
+    <div id="recipeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <img id="modalImage" src="" alt="" style="width:100%; border-radius:10px;">
+            <h3>المكونات:</h3><p id="modalIngredients"></p>
+            <h3>طريقة التحضير:</h3><div id="modalBody"></div>
+        </div>
+    </div>
+
+    <div id="shoppingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeShoppingModal()">&times;</span>
+            <h2>🛒 قائمة القضيان لهذا الأسبوع</h2>
+            <ul id="shoppingListItems" style="text-align: right; padding-right: 20px;"></ul>
+            <button class="btn-primary" onclick="copyShoppingList()">📋 نسخ القائمة</button>
+        </div>
+    </div>
+
+    <div id="printableSection" class="print-only-section">
+        <div class="print-header">
+            <h1>جدول الأكل</h1>
+            <p>من إعداد: تطبيق كوزينتي 👩‍🍳</p>
+            <p id="printDate"></p>
+        </div>
+        
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%">اليوم</th>
+                    <th style="width: 40%">الطبخ</th>
+                    <th style="width: 40%">ملاحظات / مقادير</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+        
+        <div class="print-footer"><p>بصحتكم ولهنا! ❤️</p></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
