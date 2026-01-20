@@ -5,7 +5,7 @@ const initialRecipes = [
     { id: 3, name: "لوبيا بيضاء", type: "حبوب", ingredients: ["لوبيا", "طماطم", "ثوم", "بصل"], instruction: "رنخي اللوبيا، طيبيها مع الدرجة (ثوم وكمون)." },
     { id: 4, name: "عدس", type: "حبوب", ingredients: ["عدس", "زرودية", "بطاطا", "بصل"], instruction: "ديري كلش بارد في بارد مع الخضرة." },
     { id: 5, name: "جلبانة بالقرنون", type: "مرقة", ingredients: ["جلبانة", "قرنون", "لحم", "بصل"], instruction: "مرقة بيضاء بالجلبانة والقرنون." },
-    { id: 6, name: "كسكسي", type: "عجائن", ingredients: ["كسكسي", "دجاج", "زرودية", "قرعة"], instruction: "فوري الكسكسي وطيبي المرقة بالخضرة." },
+    { id: 6, name: "كسكسي", type: "عجائن", ingredients: ["كسكسي", "دجاج", "زرودية", "قرعة", "لفت"], instruction: "فوري الكسكسي وطيبي المرقة بالخضرة." },
     { id: 7, name: "رشتة", type: "عجائن", ingredients: ["رشتة", "دجاج", "لفت", "حمص"], instruction: "الرشتة العاصمية بالدجاج واللفت." },
     { id: 8, name: "غراتان بطاطا", type: "غراتان", ingredients: ["بطاطا", "جبن", "بيض", "حليب"], instruction: "بطاطا مقلية مع البيشاميل للكوشة." },
     { id: 9, name: "سردين مقلي", type: "حوت", ingredients: ["سردين", "ثوم", "كمون", "فرينة"], instruction: "درسي السردين واقليه." },
@@ -14,7 +14,10 @@ const initialRecipes = [
     { id: 12, name: "مقرونة بالبشاميل", type: "عجائن", ingredients: ["مقرونة", "لحم مرحي", "جبن", "حليب"], instruction: "مقرونة في الكوشة." },
     { id: 13, name: "محاجب", type: "عجائن", ingredients: ["سميد", "بصل", "طماطم"], instruction: "عجني الدقيق وحضري تشكشوكة بصل وطماطم." },
     { id: 14, name: "بوراك", type: "مقبلات", ingredients: ["ديول", "بطاطا", "لحم مرحي", "جبن"], instruction: "عمري الديول واقليهم." },
-    { id: 15, name: "فريت أومليت", type: "خفيف", ingredients: ["بطاطا", "بيض", "معدنوس"], instruction: "قلي البطاطا مكعبات، وزيدي عليها البيض والمعدنوس." }
+    { id: 15, name: "فريت أومليت", type: "خفيف", ingredients: ["بطاطا", "بيض", "معدنوس"], instruction: "قلي البطاطا مكعبات، وزيدي عليها البيض والمعدنوس." },
+    // --- أكلات الجمعة الخاصة ---
+    { id: 16, name: "شخشوخة", type: "عجائن", ingredients: ["شخشوخة", "دجاج", "حمص", "طماطم", "فلفل"], instruction: "مرقة حمراء حارة، وتجمري الفتات تاع الشخشوخة." },
+    { id: 17, name: "دجاج محمر", type: "مرقة", ingredients: ["دجاج", "ثوم", "بطاطا", "معدنوس"], instruction: "تبلي الدجاج مليح وديريه في الكوشة يتحمر مع البطاطا." }
 ];
 
 const allIngredients = [
@@ -32,7 +35,6 @@ let selectedIngredientsForNewRecipe = [];
 
 // === 2. التشغيل والتهيئة ===
 window.onload = function() {
-    // تحميل الوصفات المضافة من الذاكرة
     const customRecipes = JSON.parse(localStorage.getItem('myCustomRecipes')) || [];
     recipesDB = [...initialRecipes, ...customRecipes];
     renderIngredients('ingredientsList', false);
@@ -74,42 +76,98 @@ function setMode(mode) {
     document.querySelector('#screen-ingredients .btn-primary').innerText = btnText;
 }
 
-// === 3. التوليد (Generate) ===
+// === 3. التوليد (Generate) - تم التعديل لمنطق الجمعة ===
 function generatePlan() {
     if (selectedIngredients.length === 0) { alert("يا يما، خيري واش عندك مقادير!"); return; }
+
+    // تعريف أكلات الجمعة
+    const fridaySpecials = ["كسكسي", "رشتة", "شخشوخة", "دجاج محمر"];
+
+    // البحث عن الوصفات المتطابقة مع المقادير
     let matched = recipesDB.filter(r => r.ingredients.some(ing => selectedIngredients.includes(ing)));
+    
     if (matched.length === 0) { alert("ما لقيتش وصفات، زيدي خيري مقادير!"); return; }
     
+    // خلط النتائج
     matched = matched.sort(() => Math.random() - 0.5);
+
     const container = document.getElementById('resultsContainer');
     container.innerHTML = "";
     currentPlan = [];
 
-    // إظهار الأزرار الأساسية
     document.getElementById('btn-pdf').style.display = 'inline-block';
     document.getElementById('btn-share').style.display = 'inline-block';
 
+    // === المنطق اليومي ===
     if (currentMode === 'daily') {
         document.getElementById('resultTitle').innerText = "وجبة اليوم:";
-        document.getElementById('btn-shopping').style.display = 'none'; // إخفاء زر القضيان في اليومي
+        document.getElementById('btn-shopping').style.display = 'none';
+
+        // التحقق: هل اليوم هو الجمعة؟ (رقم 5 في الجافاسكريبت)
+        const todayIsFriday = new Date().getDay() === 5;
         
-        const recipe = matched[0];
-        currentPlan.push(recipe);
-        container.innerHTML = createRecipeCard(recipe);
-    } else {
+        let chosenRecipe = matched[0];
+
+        if (todayIsFriday) {
+            // محاولة إيجاد طبق جمعة من النتائج المتطابقة
+            const fridayMatch = matched.find(r => fridaySpecials.includes(r.name));
+            if (fridayMatch) {
+                chosenRecipe = fridayMatch;
+            } else {
+                // إذا لم نجد طبق جمعة بالمقادير المختارة، هل نجبر النظام على اقتراح طبق جمعة؟
+                // الأفضل نعم، لأن الجمعة مميزة. نبحث في قاعدة البيانات كاملة
+                const forceFriday = recipesDB.filter(r => fridaySpecials.includes(r.name));
+                const randomFriday = forceFriday[Math.floor(Math.random() * forceFriday.length)];
+                // تنبيه صغير للمستخدم
+                if(confirm(`اليوم الجمعة! واش رايك نديرو ${randomFriday.name}؟ (حتى لو ما خيرتيش مقاديرها)`)) {
+                    chosenRecipe = randomFriday;
+                }
+            }
+        }
+
+        currentPlan.push(chosenRecipe);
+        container.innerHTML = createRecipeCard(chosenRecipe);
+
+    } 
+    // === المنطق الأسبوعي ===
+    else {
         document.getElementById('resultTitle').innerText = "جدول الأسبوع:";
-        document.getElementById('btn-shopping').style.display = 'inline-block'; // إظهار زر القضيان في الأسبوعي
+        document.getElementById('btn-shopping').style.display = 'inline-block';
         
-        let weekly = [...matched];
-        if (weekly.length < 7) {
-            let others = recipesDB.filter(r => !weekly.includes(r)).sort(() => Math.random() - 0.5);
-            weekly = weekly.concat(others).slice(0, 7);
-        } else { weekly = weekly.slice(0, 7); }
-        currentPlan = weekly;
+        // 1. اختيار طبق الجمعة أولاً
+        // نحاول إيجاد طبق جمعة يتناسب مع المقادير، وإلا نختار عشوائياً
+        let fridayDish = recipesDB.filter(r => fridaySpecials.includes(r.name) && r.ingredients.some(ing => selectedIngredients.includes(ing)))[0];
+        
+        if (!fridayDish) {
+            // إذا لم تتوفر مقادير الجمعة، نختار طبق جمعة عشوائي من القاعدة
+            const allFridayOptions = recipesDB.filter(r => fridaySpecials.includes(r.name));
+            fridayDish = allFridayOptions[Math.floor(Math.random() * allFridayOptions.length)];
+        }
+
+        // 2. اختيار باقي الأيام (6 أيام)
+        // نستثني طبق الجمعة المختار من القائمة لتجنب التكرار
+        let otherDays = matched.filter(r => r.id !== fridayDish.id);
+        
+        // نحتاج 6 أطباق، إذا لم يكفِ العدد نملأ من القاعدة
+        if (otherDays.length < 6) {
+            let fillers = recipesDB.filter(r => r.id !== fridayDish.id && !otherDays.includes(r)).sort(() => Math.random() - 0.5);
+            otherDays = otherDays.concat(fillers).slice(0, 6);
+        } else {
+            otherDays = otherDays.slice(0, 6);
+        }
+
+        // 3. دمج الجدول (6 أيام + الجمعة في الأخير)
+        // الترتيب: السبت -> الخميس (otherDays) ، الجمعة (fridayDish)
+        currentPlan = [...otherDays, fridayDish];
+
         const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
-        weekly.forEach((recipe, index) => {
+        
+        currentPlan.forEach((recipe, index) => {
+            // تمييز يوم الجمعة بلون مختلف قليلاً
+            const isFridayStyle = index === 6 ? "border-right: 5px solid #2ecc71; background: #e8f8f5;" : "";
+            
             container.innerHTML += `
-                <div class="weekly-item">
+                <div class="weekly-item" style="${isFridayStyle}">
                     <div class="day-label">${days[index]}</div>
                     <div class="meal-name">${recipe.name}</div>
                     <button class="btn-small" onclick="showRecipeDetails(${recipe.id})">الوصفة</button>
@@ -142,8 +200,11 @@ function preparePrintTable(recipesList, dateTitle) {
         if (recipesList.length === 1) { dayName = "وجبة اليوم"; } 
         else { dayName = days[index] || `يوم ${index + 1}`; }
 
+        // تمييز الجمعة في الطباعة أيضاً
+        const rowStyle = (recipesList.length > 1 && index === 6) ? "background-color: #f0f0f0;" : "";
+
         tbody.innerHTML += `
-            <tr>
+            <tr style="${rowStyle}">
                 <td style="text-align:center; font-weight:bold">${dayName}</td>
                 <td style="font-weight:bold; font-size:16px">${recipeName}</td>
                 <td>${ingredientsTxt}</td>
@@ -216,7 +277,7 @@ function performShare(planList, title) {
     }
 }
 
-// === 6. قائمة القضيان (Shopping List) - تم إضافتها ===
+// === 6. قائمة القضيان ===
 function generateShoppingList() {
     if (currentPlan.length === 0) return;
 
@@ -264,7 +325,7 @@ function filterRecipes() { const term = document.getElementById('searchBox').val
 function renderCatalog(list) { const container = document.getElementById('catalogContainer'); container.innerHTML = ""; list.forEach(r => { container.innerHTML += `<div class="card" style="text-align:right; padding:10px;"><h3 style="margin:0">${r.name}</h3><small>${r.type}</small><button class="btn-small" style="float:left" onclick="showRecipeDetails(${r.id})">شوف</button><div style="clear:both"></div></div>`; }); }
 function showAddRecipeScreen() { selectedIngredientsForNewRecipe = []; document.querySelectorAll('#newRecipeIngredients .ingredient-item').forEach(el => el.classList.remove('selected')); document.getElementById('newRecipeName').value = ''; document.getElementById('newRecipeInstructions').value = ''; showScreen('screen-add'); }
 
-// إضافة وصفة جديدة مع حفظها في LocalStorage
+// إضافة وصفة جديدة
 function addNewRecipe() { 
     const name = document.getElementById('newRecipeName').value; 
     const type = document.getElementById('newRecipeType').value; 
@@ -287,7 +348,7 @@ function addNewRecipe() {
 function showRecipeDetails(id) { const recipe = recipesDB.find(r => r.id === id); if (!recipe) return; document.getElementById('modalTitle').innerText = recipe.name; document.getElementById('modalIngredients').innerText = recipe.ingredients.join(' - '); document.getElementById('modalBody').innerText = recipe.instruction; document.getElementById('modalImage').src = "https://placehold.co/600x400/FF6B6B/ffffff?text=" + encodeURI(recipe.name); document.getElementById('recipeModal').style.display = "block"; }
 function closeModal() { document.getElementById('recipeModal').style.display = "none"; }
 
-// حفظ الجدول في LocalStorage
+// حفظ الجدول
 function saveCurrentPlan() { 
     if(currentPlan.length === 0) return; 
     let saved = JSON.parse(localStorage.getItem('myPlans')) || []; 
