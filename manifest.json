@@ -1,7 +1,7 @@
 {
   "name": "كوزينتي",
   "short_name": "كوزينتي",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#FF6B6B",
@@ -17,5 +17,4 @@
       "type": "image/png"
     }
   ]
-
 }
